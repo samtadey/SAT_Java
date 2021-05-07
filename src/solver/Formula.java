@@ -30,4 +30,11 @@ public class Formula {
 		return false;
 	}
 	
+	void removeUnit(int val) {
+		for (int i = 0; i < this.values.size(); i++)
+			if (this.values.get(i) == val)
+				this.values.remove(i);
+
+	}
+	
 }

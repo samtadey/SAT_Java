@@ -31,6 +31,10 @@ public class FormulaSet {
 		this.formulas.add(formula);
 	}
 	
+	public void removeFormula(int idx) throws IndexOutOfBoundsException {
+		this.formulas.remove(idx);
+	}
+	
 	public int getVarcount() {
 		return varcount;
 	}
@@ -70,6 +74,44 @@ public class FormulaSet {
 				return true;
 		return false;
 	}
+	
+//	//
+//	//unsatisfied should mean no possible answers for one or more formulae -> therefore must backtrack
+//	public boolean isUnsat(Assignment a1) {
+//		boolean flag = false;
+//		for (int i = 0; i < a1.getSolution().length; i++)
+//		{
+//			if (a1.getSolution()[i] == 0)
+//				continue;
+//			
+//			for (int j = 0; j < this.formulas.size(); j++)
+//			{
+////				if (a1.getSolution()[i] == -(this.formulas.get(j)))
+////					return false;
+//			}
+//			
+//		}
+//		return true;
+//	}
+	
+//	public boolean isUnsatisfied(Assignment a1) {
+//		boolean flag = true;
+//		for (int i = 0; i < this.formulas.size(); i++)
+//		{
+//			flag = false;
+//			for (int j = 0; j < a1.getSolution().length; j++)
+//			{
+//				if (this.formulas.get(i).isSatisfiedBy(a1.getSolution()[j]))
+//				{
+//					flag = true;
+//					break;
+//				}
+//			}
+//		}
+//		
+//		
+//		return false;
+//	}
 	
 	//find pure literals
 	//find unit clauses

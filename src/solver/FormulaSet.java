@@ -56,6 +56,19 @@ public class FormulaSet {
 		}
 	}
 	
+	public void setFormulas(ArrayList<ArrayList<Integer>> formulas) {
+		Formula form;
+		for (int i = 0; i < formulas.size(); i++)
+		{
+			form = new Formula();
+			for (int j = 0; j < formulas.get(i).size(); j++)
+			{
+				form.addValue(formulas.get(i).get(j));
+			}
+			this.formulas.add(form);
+		}
+	}
+	
 	public boolean isConsistent(int[] counts) {
 		for (int i = 0; i < this.varcount; i++)
 		{
@@ -119,12 +132,10 @@ public class FormulaSet {
 	public void toConsole() {
 		for (int i = 0; i < this.formulas.size(); i++)
 		{
+			System.out.print("[");
 			for (int j = 0; j < this.formulas.get(i).getFormula().size(); j++)
-			{
-				System.out.print(this.formulas.get(i).getFormula().get(j));
-				System.out.print(",");
-			}
-			System.out.println(" ");
+				System.out.print(this.formulas.get(i).getFormula().get(j) + ",");
+			System.out.println("]");
 		}
 	}
 

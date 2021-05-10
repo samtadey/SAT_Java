@@ -34,7 +34,6 @@ public class Formula {
 		for (int i = 0; i < this.values.size(); i++)
 			if (this.values.get(i) == val)
 				this.values.remove(i);
-
 	}
 	
 }

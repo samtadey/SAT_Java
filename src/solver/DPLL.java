@@ -28,15 +28,7 @@ public class DPLL {
 			return true;
 		if (set.hasEmptyClause())
 			return false;
-		
-		//one possible value for each remaining variable
-		//return true;
-		//if one formula empty
-		//return false;
-		//find unit clauses
-		//for every unit clause, run propagate
-		//pure literal logic
-		//unit prop
+
 		unit_clause = findUnitFormula(set);
 		newset = unitProp(unit_clause, set);
 		System.out.println("After Unit Prop ");
@@ -104,8 +96,6 @@ public class DPLL {
 		
 		return lit_count;
 	}
-	
-
 	
 
 	
@@ -242,6 +232,19 @@ public class DPLL {
 		return val;
 	}
 	
+	
+	public boolean solve(ArrayList<ArrayList<Integer>> dimacs) {
+		
+		//dimacs find variables
+		FormulaSet forms = new FormulaSet(5);
+
+		forms.setFormulas(dimacs);
+		forms.toConsole();
+
+		boolean sat = DPLL.runDPLL(forms);
+		System.out.println(sat);
+		return sat;
+	}
 
 	public static void main(String[] args) {
 		

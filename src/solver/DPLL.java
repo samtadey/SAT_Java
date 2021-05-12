@@ -14,23 +14,24 @@ public class DPLL {
 	private static boolean runDPLL(FormulaSet set) {
 		int literal;
 		int counts[], uniq[];
-		ArrayList<Integer> unit_clause;
-		FormulaSet newset;
+		ArrayList<Integer> unit_clause, unit_vals;
+		FormulaSet newset, copy;
 		
 		System.out.println("Start of function");
-		set.toConsole();
-		
+		set.toConsole();	
 
 		uniq = countLiteralsUnique(set);
-		//if set of formulas are consistent
-		//if consistency is found we can add those variables to the assignment?
-		if (set.isConsistent(uniq))
-			return true;
 		if (set.hasEmptyClause())
 			return false;
+		if (set.isConsistent(uniq))
+			return true;
+
 
 		unit_clause = findUnitFormula(set);
-		newset = unitProp(unit_clause, set);
+		unit_vals = unitValues(unit_clause, set);
+		
+		newset = runUnitProp(unit_vals, set);
+
 		System.out.println("After Unit Prop ");
 		newset.toConsole();
 		
@@ -42,11 +43,11 @@ public class DPLL {
 		counts = countLiterals(newset);
 		literal = chooseHighestLiteralCount(counts);
 	
-		//assign to assignments
-
+		//no independent objects for runDPLL
+		copy = newset.copySet();
 		
 		//return true;
-		return runDPLL(eliminateFormulas(literal, newset)) || runDPLL(eliminateFormulas(-literal, newset));
+		return runDPLL(eliminateFormulas(literal, newset)) || runDPLL(eliminateFormulas(-literal, copy));
 		//if
 	}
 
@@ -107,10 +108,16 @@ public class DPLL {
 		for (int i = 0; i < set.getFormulas().size(); i++)
 		{
 			if (!set.getFormulas().get(i).isSatisfiedBy(unit))
+			{
+				set.getFormulas().get(i).removeUnit(-unit);
 				newset.addFormula(set.getFormulas().get(i));
+				//check most recent addition for literal removal
+				//newset.getFormulas().get(newset.getFormulas().size() - 1).removeUnit(-unit);
+			}
 		}
 		return newset;
 	}
+	
 	
 	private static ArrayList<Integer> findUnitFormula(FormulaSet set) {
 		//there is the case of conflicting unit formulas
@@ -138,33 +145,57 @@ public class DPLL {
 		return unit_idx;
 	}
 	
-	private static FormulaSet unitProp(ArrayList<Integer> unit_idx, FormulaSet set) {
-		//nothing to do
-		if (unit_idx.size() < 1)
+	public static ArrayList<Integer> unitValues(ArrayList<Integer> unit_idx, FormulaSet set) {
+		ArrayList<Integer> unit_val = new ArrayList<Integer>();
+		for (int i = 0; i < unit_idx.size(); i++)
+			unit_val.add(set.getFormulas().get(unit_idx.get(i)).getFormula().get(0));
+		
+		return unit_val;
+	}
+	
+
+//	
+//	private static boolean isUnitVal(int val, ArrayList<Integer> unit_val) {
+//		for (int i = 0; i < unit_val.size(); i++)
+//			if (val == unit_val.get(i))
+//				return true;
+//		return false;
+//	}
+	
+	private static FormulaSet runUnitProp(ArrayList<Integer> unit_val, FormulaSet set) {
+		
+		if (unit_val.size() == 0)
 			return set;
 		
-		FormulaSet newset = new FormulaSet(set.getVarcount());
-		ArrayList<Formula> forms = (ArrayList<Formula>) set.getFormulas();
-		Formula clause;
-		int unit, form_idx;
+		FormulaSet newset = new FormulaSet(set);
+		System.out.println("Before Prop");
+		//newset.toConsole();
 		
-		for (int u = 0; u < unit_idx.size(); u++)
+		for (int i = 0; i < unit_val.size(); i++) {
+			newset = unitProp(unit_val.get(i),newset);
+			//System.out.println("Prop " + unit_val.get(i));
+			//newset.toConsole();
+		}
+
+		return newset;
+	}
+	
+	private static FormulaSet unitProp(int unit_val, FormulaSet set) {
+		FormulaSet newset = new FormulaSet(set.getVarcount());
+		Formula clause;
+		
+		for (int i = 0; i < set.getFormulas().size(); i++)
 		{
-			form_idx = unit_idx.get(u);
-			//retrieve the unit formula eg {2}
-			unit = set.getFormulas().get(form_idx).getFormula().get(0);
-			//remove clauses with matching literal OTHER than the unit clause
-			for (int i = 0; i < set.getFormulas().size(); i++)
+			clause = set.getFormulas().get(i);
+			//add formulas that are not satisfied OR are the unit clause itself
+			if (!clause.isSatisfiedBy(unit_val) || (clause.isSatisfiedBy(unit_val) && clause.getFormula().size() == 1))
 			{
-				clause = forms.get(i);
-				if (i == unit_idx.get(u) || !clause.isSatisfiedBy(unit))
-				{
-					//remove literals containing negation before adding
-					clause.removeUnit(-unit);
-					newset.addFormula(clause);
-				}
+				//remove negated values
+				clause.removeUnit(-unit_val);
+				newset.addFormula(clause);
 			}
 		}
+		
 		return newset;
 	}
 	
@@ -197,12 +228,12 @@ public class DPLL {
 		for (int i = 0; i < forms.size(); i++)
 		{
 			found = false;
-			for (int j = 0; j < purelist.size(); j++)
-			{
-				if (forms.get(i).isSatisfiedBy(purelist.get(j)))
-					found = true;
-					
-			}
+			//do not act on unit clauses
+			if (forms.get(i).getFormula().size() > 1)
+				for (int j = 0; j < purelist.size(); j++)
+					if (forms.get(i).isSatisfiedBy(purelist.get(j)))
+						found = true;
+
 			if (!found)
 				newset.addFormula(forms.get(i));
 		}
@@ -236,7 +267,7 @@ public class DPLL {
 	public boolean solve(ArrayList<ArrayList<Integer>> dimacs) {
 		
 		//dimacs find variables
-		FormulaSet forms = new FormulaSet(5);
+		FormulaSet forms = new FormulaSet(20);
 
 		forms.setFormulas(dimacs);
 		forms.toConsole();
@@ -245,10 +276,37 @@ public class DPLL {
 		System.out.println(sat);
 		return sat;
 	}
+	
+//	public void testCopy(ArrayList<ArrayList<Integer>> dimacs) {
+//		FormulaSet forms = new FormulaSet(dimacs, 5);
+//		forms.toConsole();
+//		
+//		FormulaSet copy = new FormulaSet(5);
+//		
+////		for (int i = 0; i < forms.getFormulas().size(); i++) 
+////		{
+////			Formula f = new Formula();
+////			for (int j = 0; j < forms.getFormulas().get(i).getFormula().size(); j++)
+////			{
+////				f.addValue(forms.getFormulas().get(i).getFormula().get(j));
+////			}
+////			copy.addFormula(f);
+////		}
+//		
+//		copy = forms.copySet();
+//		
+//		System.out.println("Remove form copy");
+//		copy.getFormulas().get(1).getFormula().remove(1);
+//		copy.toConsole();
+//		
+//		System.out.println("Original");
+//		forms.toConsole();
+//		
+//	}
 
 	public static void main(String[] args) {
 		
-		int num_vars =4;
+		int num_vars = 4;
 		
 		int set[][] = {
 				{1, 2, 3},
@@ -257,116 +315,14 @@ public class DPLL {
 				{-1, -3},
 		};
 		
-//		int set[][]  = {
-//		{-10, 8, -2},
-//		{4, -7, -6},
-//		{9, -2},
-//		{4, -5, -9},
-//		{4, -5, 7},
-//		{4, 3},
-//		{3, -10, -2},
-//		{2, 9, -6},
-//		{7, -6, -1},
-//		{-4, 8, 2},
-//		{-4, 8, 2},
-//		{9, -5, 4},
-//		{3, 1, 10},
-//		{2, 4, -5},
-//		{-7, -1, -8},
-//		{2, 5, -7},
-//		{1,-6, 2},
-//		{10, -5, -4},
-//		{-6, 7},
-//		{-6, -4, 6},
-//		{1, -9},
-//		{7, -2, -9},
-//		{6, 1},
-//		{-3, -1, 6},
-//		{5, 8, 7},
-//		{-10, -2, 4},
-//		{-6, 3, -10},
-//		{-6, 3, -10},
-//		{3, -1, 10},
-//		{-10, -7, 2},
-//		{2, -7, -10},
-//		{-4, 2, 7},
-//		{2, 9, -6},
-//		{1, -1, -7},
-//		{1 ,-8, 6},
-//		{-3, 7},
-//		{-6, -7, 1},
-//		{-4, 5, 9},
-//		{10, -3, -7},
-//		{1, 10, -10},
-//		{-3, 10, 6},
-//		{-3, -1},
-//		};
 
 		
-		
-		
-		
-		
-		
+
 
 		FormulaSet forms = new FormulaSet(num_vars);
 		FormulaSet newset = new FormulaSet(num_vars);
-		forms.setFormulas(set);
-//		forms.toConsole();
 		
-//		Assignment a1 = new Assignment(num_vars);
-//		for (int i = 0; i < a1.getSolution().length; i++)
-//			System.out.println(a1.getSolution()[i]);
-		
-//
-//		//here we found a unit prop
-//		newset = DPLL.eliminateFormulas(1, forms);
-//		System.out.println();
-//		newset.toConsole();
-//		//here we found a pure literal
-//		newset = DPLL.eliminateFormulas(5, newset);
-//		System.out.println();
-//		newset.toConsole();
-//		
-//		
-//		ArrayList<Integer> units = DPLL.findLoneUnits(forms);
-//		System.out.println();
-//		for (int i = 0; i < units.size(); i++)
-//			System.out.print(units.get(i) + " ");
-//		
-		System.out.println();
-//		int[] lits = DPLL.countLiterals(forms);
-//		int[] ulits = DPLL.countLiteralsUnique(forms);
-//		forms.toConsole();
-//		System.out.println();
-//		for (int i = 0; i < lits.length; i++)
-//			System.out.println(i+1 + ": " + lits[i]);
-//		System.out.println(DPLL.chooseHighestLiteralCount(lits, a1));
-//		
-//		System.out.println();
-//		for (int i = 0; i < ulits.length; i++)
-//			System.out.println(i+1 + ": " + ulits[i]);
-//		System.out.println();
-//		ArrayList<Integer> a = new ArrayList<Integer>();
-//		a.add(7);
-//
-//		newset = unitProp(a, forms);
-//		newset.toConsole();
-//		
-//		int[] test = countLiteralsUnique(newset);
-//		for (int i = 0; i < test.length; i++)
-//			System.out.println(i+1 + ": " + test[i]);	
-		
-		System.out.println("");
-		//ArrayList<Integer> pure = findPure(test, newset.getVarcount());
-		//for (int i = 0; i < pure.size(); i++)
-			//System.out.println(pure.get(i));
-		
-//		FormulaSet nopure = pureListAssign(test, newset);
-//		nopure.toConsole();
-//		System.out.println(" ");
-//		System.out.println(nopure.getFormulas().size());
-		
+
 		boolean sat = DPLL.runDPLL(forms);
 		System.out.println(sat);
 	}

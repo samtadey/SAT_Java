@@ -15,8 +15,25 @@ public class FormulaSet {
 	private int varcount;
 	
 	public FormulaSet(int num_vars) {
-		formulas = new ArrayList<Formula>();
+		this.formulas = new ArrayList<Formula>();
 		this.varcount = num_vars;
+	}
+	
+//	public FormulaSet(ArrayList<ArrayList<Integer>> dimacs, int varcount) {
+//		this.formulas = new ArrayList<Formula>();
+//		setFormulas(dimacs);
+//		this.varcount = varcount;
+//	}
+	
+//	public FormulaSet(FormulaSet set) {
+//		this.formulas = new ArrayList<Formula>();
+//		setFormulas(set.getFormulas());
+//		this.varcount = set.getVarcount();
+//	}
+	
+	public FormulaSet(FormulaSet set) {
+		this.formulas = set.formulas;
+		this.varcount = set.varcount;
 	}
 
 	public List<Formula> getFormulas() {
@@ -43,18 +60,34 @@ public class FormulaSet {
 		this.varcount = varcount;
 	}
 	
-	public void setFormulas(int[][] formulas) {
-		Formula form;
-		for (int i = 0; i < formulas.length; i++)
+	public FormulaSet copySet() {
+		FormulaSet copy = new FormulaSet(this.varcount);
+				
+		for (int i = 0; i < this.getFormulas().size(); i++) 
 		{
-			form = new Formula();
-			for (int j = 0; j < formulas[i].length; j++)
+			Formula f = new Formula();
+			for (int j = 0; j < this.getFormulas().get(i).getFormula().size(); j++)
 			{
-				form.addValue(formulas[i][j]);
+				f.addValue(this.getFormulas().get(i).getFormula().get(j));
 			}
-			this.formulas.add(form);
+			copy.addFormula(f);
 		}
+		
+		return copy;
 	}
+	
+//	public void setFormulas(int[][] formulas) {
+//		Formula form;
+//		for (int i = 0; i < formulas.length; i++)
+//		{
+//			form = new Formula();
+//			for (int j = 0; j < formulas[i].length; j++)
+//			{
+//				form.addValue(formulas[i][j]);
+//			}
+//			this.formulas.add(form);
+//		}
+//	}
 	
 	public void setFormulas(ArrayList<ArrayList<Integer>> formulas) {
 		Formula form;

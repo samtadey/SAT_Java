@@ -56,6 +56,7 @@ public class SAT_UI extends JFrame implements ActionListener {
             DPLL dpll_sat = new DPLL();
             //dpll_sat.
             results = dpll_sat.solve(formset);
+            //dpll_sat.testCopy(formset);
             //print results
             l.setText(Boolean.toString(results));
         }

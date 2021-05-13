@@ -1,6 +1,7 @@
 package solver;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -11,7 +12,7 @@ public class DPLL {
 	//constructor sets
 	//run() function actually runs this all
 	
-	private static boolean runDPLL(FormulaSet set) {
+	private static boolean runDPLL(FormulaSet set, ArrayList<Integer> soln) {
 		int literal;
 		int counts[], uniq[];
 		ArrayList<Integer> unit_clause, unit_vals;
@@ -20,88 +21,56 @@ public class DPLL {
 		System.out.println("Start of function");
 		set.toConsole();	
 
-		uniq = countLiteralsUnique(set);
+		uniq = set.countLiteralsUnique();
 		if (set.hasEmptyClause())
 			return false;
 		if (set.isConsistent(uniq))
+		{
+			//add remaining to soln
+			//will add duplicates at end, this won't matter if/when the implementation of Formula/FormulaSet is changed 
+			//to contain sets instead of ArrayLists
+			for (Formula f : set.getFormulas())
+				for (int i : f.getFormula())
+					soln.add(i);
+			
 			return true;
-
-
+		}
+		
 		unit_clause = findUnitFormula(set);
 		unit_vals = unitValues(unit_clause, set);
 		
-		newset = runUnitProp(unit_vals, set);
+		newset = runUnitProp(unit_vals, set, soln);
 
 		System.out.println("After Unit Prop ");
 		newset.toConsole();
 		
-		uniq = countLiteralsUnique(newset);
-		newset = pureListAssign(uniq, newset);
+		uniq = newset.countLiteralsUnique();
+		newset = pureListAssign(uniq, newset, soln);
 		System.out.println("After Pure Assign ");
 		newset.toConsole();
 
-		counts = countLiterals(newset);
+		counts = newset.countLiterals();
 		literal = chooseHighestLiteralCount(counts);
 	
 		//no independent objects for runDPLL
 		copy = newset.copySet();
 		
 		//return true;
-		return runDPLL(eliminateFormulas(literal, newset)) || runDPLL(eliminateFormulas(-literal, copy));
+		return runDPLL(eliminateFormulas(literal, newset, soln), soln) || runDPLL(eliminateFormulas(-literal, copy, soln), soln);
 		//if
 	}
-
 	
-	
-	// [ + + + + + + + - - - - - - -] 
-	// positive values first
-	// negated literals at positive_idx + total_num_vars
-	private static int[] countLiteralsUnique(FormulaSet inset) {
-		
-		int lit_count[] = new int[inset.getVarcount() * 2];
-		ArrayList<Formula> set = (ArrayList<Formula>) inset.getFormulas();
-		
-		for (int i = 0; i < set.size(); i++)
-		{
-			for (int j = 0; j < set.get(i).getFormula().size(); j++)
-			{
-				int literal = set.get(i).getFormula().get(j);
-				
-				//count literals
-				if (literal > 0)
-					lit_count[literal - 1]++;
-				else 
-					lit_count[Math.abs(literal) + inset.getVarcount() - 1]++;
-			}
-		}
-		
-		return lit_count;
-	}
-
-	private static int[] countLiterals(FormulaSet inset) {
-		
-		int lit_count[] = new int[inset.getVarcount()];
-		ArrayList<Formula> set = (ArrayList<Formula>) inset.getFormulas();
-		
-		for (int i = 0; i < set.size(); i++)
-		{
-			for (int j = 0; j < set.get(i).getFormula().size(); j++)
-			{
-				int literal = set.get(i).getFormula().get(j);
-				
-				//count literals
-				//value - 1
-				lit_count[Math.abs(literal) - 1]++;
-			}
-		}
-		
-		return lit_count;
-	}
+//	private static runDPLLB(FormulaSet set) {
+//		
+//		return runDPLL(eliminateFormulas(literal, newset)) || runDPLL(eliminateFormulas(-literal, copy));
+//	}
 	
 
+
 	
-	private static FormulaSet eliminateFormulas(int unit, FormulaSet set) {
+	private static FormulaSet eliminateFormulas(int unit, FormulaSet set, ArrayList<Integer> soln) {
 		FormulaSet newset = new FormulaSet(set.getVarcount());
+		soln.add(unit);
 		
 		System.out.println("Choosing " + unit);
 		
@@ -153,16 +122,8 @@ public class DPLL {
 		return unit_val;
 	}
 	
-
-//	
-//	private static boolean isUnitVal(int val, ArrayList<Integer> unit_val) {
-//		for (int i = 0; i < unit_val.size(); i++)
-//			if (val == unit_val.get(i))
-//				return true;
-//		return false;
-//	}
 	
-	private static FormulaSet runUnitProp(ArrayList<Integer> unit_val, FormulaSet set) {
+	private static FormulaSet runUnitProp(ArrayList<Integer> unit_val, FormulaSet set, ArrayList<Integer> soln) {
 		
 		if (unit_val.size() == 0)
 			return set;
@@ -170,6 +131,11 @@ public class DPLL {
 		FormulaSet newset = new FormulaSet(set);
 		System.out.println("Before Prop");
 		//newset.toConsole();
+		
+		//add pure literals to solution list
+		for (int i = 0; i < unit_val.size(); i++)
+			soln.add(unit_val.get(i));
+		
 		
 		for (int i = 0; i < unit_val.size(); i++) {
 			newset = unitProp(unit_val.get(i),newset);
@@ -218,11 +184,15 @@ public class DPLL {
 	
 
 	//should  purelist act on the unit variables?
-	private static FormulaSet pureListAssign(int[] uniq_count, FormulaSet set) {
+	private static FormulaSet pureListAssign(int[] uniq_count, FormulaSet set, ArrayList<Integer> soln) {
 		ArrayList<Integer> purelist = findPure(uniq_count, set.getVarcount());
 		ArrayList<Formula> forms = (ArrayList<Formula>) set.getFormulas();
 		FormulaSet newset = new FormulaSet(set.getVarcount());
 		boolean found;
+		
+		//add pure literals to solution list
+		for (int i = 0; i < purelist.size(); i++)
+			soln.add(purelist.get(i));
 		
 		//remove clauses that contain pure literals
 		for (int i = 0; i < forms.size(); i++)
@@ -263,18 +233,135 @@ public class DPLL {
 		return val;
 	}
 	
+	private static Formula generateBlockingClause(int[] solution) {
+		Formula bc = new Formula();
+		
+		//if literal is not 0 -> matters in the assignment
+		//add the negation to the new blocking clause
+		for (int i = 0; i < solution.length; i++)
+			if (solution[i] != 0)
+				bc.addValue(-solution[i]);
+		return bc;
+	}
 	
-	public boolean solve(ArrayList<ArrayList<Integer>> dimacs) {
+	public boolean solve(ArrayList<ArrayList<Integer>> dimacs, int num_vars) {
 		
 		//dimacs find variables
-		FormulaSet forms = new FormulaSet(20);
+		System.out.println(num_vars + " vars");
+		FormulaSet forms = new FormulaSet(num_vars);
+		Formula blocking;
+		ArrayList<Integer> solution = new ArrayList<Integer>();
 
 		forms.setFormulas(dimacs);
 		forms.toConsole();
 
-		boolean sat = DPLL.runDPLL(forms);
+		boolean sat = DPLL.runDPLL(forms, solution);
 		System.out.println(sat);
+		
+		//print solution
+		if (sat)
+		{
+			int[] soln = DPLL.finalSoln(solution, forms.getVarcount());
+			for (int i = 0; i < soln.length; i++)
+				System.out.print(soln[i] + " ");
+			System.out.println(" ");
+		}
+		
 		return sat;
+	}
+	
+	public ArrayList<ArrayList<Integer>> allSolve(ArrayList<ArrayList<Integer>> dimacs, int num_vars) {
+		
+		//dimacs find variables
+		System.out.println(num_vars + " vars");
+		FormulaSet forms, copy;
+		Formula blocking;
+		ArrayList<ArrayList<Integer>> allsol = new ArrayList<ArrayList<Integer>>();
+		ArrayList<Integer> solution = new ArrayList<Integer>();
+		boolean sat;
+		
+		forms = new FormulaSet(num_vars);
+		forms.setFormulas(dimacs);
+		forms.toConsole();
+		
+		//since removal destroys original object
+		copy = forms.copySet();
+
+		do {
+			
+			sat = DPLL.runDPLL(copy, solution);
+			System.out.println(sat);
+			//print solution
+			if (sat)
+			{
+				int[] soln = DPLL.finalSoln(solution, forms.getVarcount());
+				for (int i = 0; i < soln.length; i++)
+					System.out.print(soln[i] + " ");
+				System.out.println(" ");
+				
+				blocking = generateBlockingClause(soln);
+				allsol.add(convert(soln));
+				
+				//forms = new FormulaSet(num_vars);
+				forms.addFormula(blocking);
+				System.out.println("After Dimacs");
+				forms.toConsole();
+				
+				//recopy the original set with the blocking clause
+				copy = forms.copySet();
+				
+				//zero solution array
+				solution.clear();
+			}
+			
+		} while (sat);
+		
+		
+		return allsol;
+		
+	}
+	
+	private static ArrayList<Integer> convert(int[] arr) {
+		ArrayList<Integer> list = new ArrayList<Integer>(arr.length);
+		
+		for (int i = 0; i < arr.length; i++)
+			list.add(arr[i]);
+		return list;
+	}
+	
+//	public void allSolve(ArrayList<ArrayList<Integer>> dimacs, int num_vars) {
+//		boolean sat = true;
+//		FormulaSet forms = new FormulaSet(num_vars);
+//		forms.setFormulas(dimacs);
+//		forms.toConsole();
+//		
+//		while (sat)
+//		{
+//			sat = solve(dimacs, num_vars);
+//			//remake original set
+//			//will not have to do this once removal is gone
+//			forms = new FormulaSet(num_vars);
+//			forms.setFormulas(dimacs);
+//		}
+//	}
+	
+	private static int[] finalSoln(ArrayList<Integer> soln, int vars) throws IndexOutOfBoundsException {
+		int[] assign = new int[vars];
+		boolean[] found = new boolean[vars];
+		Arrays.fill(found, false);
+		Arrays.fill(assign, 0);
+		
+		//reverse
+		for (int i = soln.size() - 1 ; i >= 0; i--)
+		{
+			if (!found[Math.abs(soln.get(i)) - 1])
+			{
+				assign[Math.abs(soln.get(i)) - 1] = soln.get(i);
+				found[Math.abs(soln.get(i)) - 1] = true;
+			}
+		}
+			
+		return assign;
 	}
 	
 //	public void testCopy(ArrayList<ArrayList<Integer>> dimacs) {
@@ -306,25 +393,25 @@ public class DPLL {
 
 	public static void main(String[] args) {
 		
-		int num_vars = 4;
-		
-		int set[][] = {
-				{1, 2, 3},
-				{1,4},
-				{-2, -3},
-				{-1, -3},
-		};
-		
-
-		
-
-
-		FormulaSet forms = new FormulaSet(num_vars);
-		FormulaSet newset = new FormulaSet(num_vars);
-		
-
-		boolean sat = DPLL.runDPLL(forms);
-		System.out.println(sat);
+//		int num_vars = 4;
+//		
+//		int set[][] = {
+//				{1, 2, 3},
+//				{1,4},
+//				{-2, -3},
+//				{-1, -3},
+//		};
+//		
+//
+//		
+//
+//
+//		FormulaSet forms = new FormulaSet(num_vars);
+//		FormulaSet newset = new FormulaSet(num_vars);
+//		
+//
+//		boolean sat = DPLL.runDPLL(forms);
+//		System.out.println(sat);
 	}
 
 }

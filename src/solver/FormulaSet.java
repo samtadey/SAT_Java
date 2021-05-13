@@ -121,43 +121,50 @@ public class FormulaSet {
 		return false;
 	}
 	
-//	//
-//	//unsatisfied should mean no possible answers for one or more formulae -> therefore must backtrack
-//	public boolean isUnsat(Assignment a1) {
-//		boolean flag = false;
-//		for (int i = 0; i < a1.getSolution().length; i++)
-//		{
-//			if (a1.getSolution()[i] == 0)
-//				continue;
-//			
-//			for (int j = 0; j < this.formulas.size(); j++)
-//			{
-////				if (a1.getSolution()[i] == -(this.formulas.get(j)))
-////					return false;
-//			}
-//			
-//		}
-//		return true;
-//	}
-	
-//	public boolean isUnsatisfied(Assignment a1) {
-//		boolean flag = true;
-//		for (int i = 0; i < this.formulas.size(); i++)
-//		{
-//			flag = false;
-//			for (int j = 0; j < a1.getSolution().length; j++)
-//			{
-//				if (this.formulas.get(i).isSatisfiedBy(a1.getSolution()[j]))
-//				{
-//					flag = true;
-//					break;
-//				}
-//			}
-//		}
-//		
-//		
-//		return false;
-//	}
+	// [ + + + + + + + - - - - - - -] 
+	// positive values first
+	// negated literals at positive_idx + total_num_vars
+	public int[] countLiteralsUnique() {
+		
+		int lit_count[] = new int[this.varcount* 2];
+		ArrayList<Formula> set = (ArrayList<Formula>) this.getFormulas();
+		
+		for (int i = 0; i < set.size(); i++)
+		{
+			for (int j = 0; j < set.get(i).getFormula().size(); j++)
+			{
+				int literal = set.get(i).getFormula().get(j);
+				
+				//count literals
+				if (literal > 0)
+					lit_count[literal - 1]++;
+				else 
+					lit_count[Math.abs(literal) + this.varcount - 1]++;
+			}
+		}
+		
+		return lit_count;
+	}
+
+	public int[] countLiterals() {
+		
+		int lit_count[] = new int[this.varcount];
+		ArrayList<Formula> set = (ArrayList<Formula>) this.formulas;
+		
+		for (int i = 0; i < set.size(); i++)
+		{
+			for (int j = 0; j < set.get(i).getFormula().size(); j++)
+			{
+				int literal = set.get(i).getFormula().get(j);
+				//count literals
+				//value - 1
+				lit_count[Math.abs(literal) - 1]++;
+			}
+		}
+		
+		return lit_count;
+	}
+
 	
 	//find pure literals
 	//find unit clauses

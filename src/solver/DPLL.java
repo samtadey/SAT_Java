@@ -5,12 +5,14 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+
+/**
+ * @author sam_t
+ * 
+ * 
+ * 
+**/
 public class DPLL {
-	
-	
-	//private formula set
-	//constructor sets
-	//run() function actually runs this all
 	
 	private static boolean runDPLL(FormulaSet set, ArrayList<Integer> soln) {
 		int literal;
@@ -49,41 +51,112 @@ public class DPLL {
 		System.out.println("After Pure Assign ");
 		newset.toConsole();
 
+		
+		uniq = newset.countLiteralsUnique();
+		
+		if (newset.hasEmptyClause())
+			return false;
+		if (newset.isConsistent(uniq))
+		{
+			for (Formula f : newset.getFormulas())
+				for (int i : f.getFormula())
+					soln.add(i);
+			
+			return true;
+		}
+			
+		
 		counts = newset.countLiterals();
 		literal = chooseHighestLiteralCount(counts);
 	
+		//unit prop and pure lit could solve the problem
+		
 		//no independent objects for runDPLL
-		copy = newset.copySet();
+		//copy = newset.copySet();
 		
 		//return true;
-		return runDPLL(eliminateFormulas(literal, newset, soln), soln) || runDPLL(eliminateFormulas(-literal, copy, soln), soln);
-		//if
+		//return runDPLL(eliminateFormulas(literal, newset, soln), soln) || runDPLL(eliminateFormulas(-literal, copy, soln), soln);
+		return runDPLL(eliminateFormulas(literal, newset, soln), soln) || runDPLL(eliminateFormulas(-literal, newset, soln), soln);
 	}
 	
-//	private static runDPLLB(FormulaSet set) {
+	
+	/*
+	 * orig
+	 */
+//	private static FormulaSet eliminateFormulas(int unit, FormulaSet set, ArrayList<Integer> soln) {
+//		FormulaSet newset = new FormulaSet(set.getVarcount());
+//		soln.add(unit);
 //		
-//		return runDPLL(eliminateFormulas(literal, newset)) || runDPLL(eliminateFormulas(-literal, copy));
+//		System.out.println("Choosing " + unit);
+//		
+//		for (int i = 0; i < set.getFormulas().size(); i++)
+//		{
+//			if (!set.getFormulas().get(i).isSatisfiedBy(unit))
+//			{
+//				set.getFormulas().get(i).removeUnit(-unit);
+//				newset.addFormula(set.getFormulas().get(i));
+//				//check most recent addition for literal removal
+//				//newset.getFormulas().get(newset.getFormulas().size() - 1).removeUnit(-unit);
+//			}
+//		}
+//		return newset;
 //	}
 	
-
-
 	
 	private static FormulaSet eliminateFormulas(int unit, FormulaSet set, ArrayList<Integer> soln) {
 		FormulaSet newset = new FormulaSet(set.getVarcount());
+		Formula form, updform;
+
 		soln.add(unit);
 		
 		System.out.println("Choosing " + unit);
 		
 		for (int i = 0; i < set.getFormulas().size(); i++)
 		{
-			if (!set.getFormulas().get(i).isSatisfiedBy(unit))
+			form = set.getFormulas().get(i);
+			//did not find literal, therefore must be added to the new set
+			if (!form.isSatisfiedBy(unit))
 			{
-				set.getFormulas().get(i).removeUnit(-unit);
-				newset.addFormula(set.getFormulas().get(i));
-				//check most recent addition for literal removal
-				//newset.getFormulas().get(newset.getFormulas().size() - 1).removeUnit(-unit);
+				//if find negation we need to create a new formula without that literal
+				if (form.isSatisfiedBy(-unit))
+				{
+					updform = form.addAllBut(-unit);
+					newset.addFormula(updform);
+				}	
+				else
+				{
+					newset.addFormula(form);
+				}
 			}
 		}
+		return newset;
+	}
+	
+	//does removing the unit clause itself matter?
+	private static FormulaSet unitProp(int unit, FormulaSet set) {
+		FormulaSet newset = new FormulaSet(set.getVarcount());
+		Formula clause, updform;
+		
+		for (int i = 0; i < set.getFormulas().size(); i++)
+		{
+			clause = set.getFormulas().get(i);
+			
+			//add formulas that are not satisfied OR are the unit clause itself
+			if (!clause.isSatisfiedBy(unit))
+			{
+				//if find negation we need to create a new formula without that literal
+				if (clause.isSatisfiedBy(-unit))
+				{
+					updform = clause.addAllBut(-unit);
+					newset.addFormula(updform);
+				}	
+				else
+				{
+					newset.addFormula(clause);
+				}
+			}
+		}
+		
 		return newset;
 	}
 	
@@ -132,7 +205,7 @@ public class DPLL {
 		System.out.println("Before Prop");
 		//newset.toConsole();
 		
-		//add pure literals to solution list
+		//add unit clauses to solution list
 		for (int i = 0; i < unit_val.size(); i++)
 			soln.add(unit_val.get(i));
 		
@@ -146,24 +219,24 @@ public class DPLL {
 		return newset;
 	}
 	
-	private static FormulaSet unitProp(int unit_val, FormulaSet set) {
-		FormulaSet newset = new FormulaSet(set.getVarcount());
-		Formula clause;
-		
-		for (int i = 0; i < set.getFormulas().size(); i++)
-		{
-			clause = set.getFormulas().get(i);
-			//add formulas that are not satisfied OR are the unit clause itself
-			if (!clause.isSatisfiedBy(unit_val) || (clause.isSatisfiedBy(unit_val) && clause.getFormula().size() == 1))
-			{
-				//remove negated values
-				clause.removeUnit(-unit_val);
-				newset.addFormula(clause);
-			}
-		}
-		
-		return newset;
-	}
+//	private static FormulaSet unitProp(int unit_val, FormulaSet set) {
+//		FormulaSet newset = new FormulaSet(set.getVarcount());
+//		Formula clause;
+//		
+//		for (int i = 0; i < set.getFormulas().size(); i++)
+//		{
+//			clause = set.getFormulas().get(i);
+//			//add formulas that are not satisfied OR are the unit clause itself
+//			if (!clause.isSatisfiedBy(unit_val) || (clause.isSatisfiedBy(unit_val) && clause.getFormula().size() == 1))
+//			{
+//				//remove negated values
+//				clause.removeUnit(-unit_val);
+//				newset.addFormula(clause);
+//			}
+//		}
+//		
+//		return newset;
+//	}
 	
 	private static ArrayList<Integer> findPure(int[] uniq_count, int varcount) {
 		ArrayList<Integer> purelist = new ArrayList<Integer>();
@@ -198,11 +271,10 @@ public class DPLL {
 		for (int i = 0; i < forms.size(); i++)
 		{
 			found = false;
-			//do not act on unit clauses
-			if (forms.get(i).getFormula().size() > 1)
-				for (int j = 0; j < purelist.size(); j++)
-					if (forms.get(i).isSatisfiedBy(purelist.get(j)))
-						found = true;
+			
+			for (int j = 0; j < purelist.size() && !found; j++)
+				if (forms.get(i).isSatisfiedBy(purelist.get(j)))
+					found = true;
 
 			if (!found)
 				newset.addFormula(forms.get(i));
@@ -215,6 +287,7 @@ public class DPLL {
 	//and if not already chosen?
 	//[0, 2, 3, 2, 1] lit count looks like this
 	//this means that 3 should be assigned, with a count of 3 occurrences
+	//returns 0 on empty set
 	private static int chooseHighestLiteralCount(int lit_count[]) {
 		int highest = 0;
 		int val = 0;
@@ -285,11 +358,12 @@ public class DPLL {
 		forms.toConsole();
 		
 		//since removal destroys original object
-		copy = forms.copySet();
+		//copy = forms.copySet();
 
 		do {
 			
-			sat = DPLL.runDPLL(copy, solution);
+			//sat = DPLL.runDPLL(copy, solution);
+			sat = DPLL.runDPLL(forms, solution);
 			System.out.println(sat);
 			//print solution
 			if (sat)
@@ -308,7 +382,7 @@ public class DPLL {
 				forms.toConsole();
 				
 				//recopy the original set with the blocking clause
-				copy = forms.copySet();
+				//copy = forms.copySet();
 				
 				//zero solution array
 				solution.clear();

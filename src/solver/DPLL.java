@@ -9,7 +9,7 @@ import java.util.Set;
 /**
  * @author sam_t
  * 
- * 
+ * Change into a SAT, ALLSAT, and DPLL Class?
  * 
 **/
 public class DPLL {
@@ -28,9 +28,6 @@ public class DPLL {
 			return false;
 		if (set.isConsistent(uniq))
 		{
-			//add remaining to soln
-			//will add duplicates at end, this won't matter if/when the implementation of Formula/FormulaSet is changed 
-			//to contain sets instead of ArrayLists
 			for (Formula f : set.getFormulas())
 				for (int i : f.getFormula())
 					soln.add(i);
@@ -38,9 +35,11 @@ public class DPLL {
 			return true;
 		}
 		
+		//one function
 		unit_clause = findUnitFormula(set);
 		unit_vals = unitValues(unit_clause, set);
-		
+		//loop until newset returns no unitvalues?
+		//add new function for these 2 methods
 		newset = runUnitProp(unit_vals, set, soln);
 
 		System.out.println("After Unit Prop ");
@@ -64,103 +63,73 @@ public class DPLL {
 			
 			return true;
 		}
-			
 		
 		counts = newset.countLiterals();
 		literal = chooseHighestLiteralCount(counts);
-	
-		//unit prop and pure lit could solve the problem
-		
-		//no independent objects for runDPLL
-		//copy = newset.copySet();
-		
-		//return true;
-		//return runDPLL(eliminateFormulas(literal, newset, soln), soln) || runDPLL(eliminateFormulas(-literal, copy, soln), soln);
-		return runDPLL(eliminateFormulas(literal, newset, soln), soln) || runDPLL(eliminateFormulas(-literal, newset, soln), soln);
+
+		return runDPLL(enactDecision(literal, newset, soln), soln) || runDPLL(enactDecision(-literal, newset, soln), soln);
 	}
-	
 	
 	/*
-	 * orig
+	 * This method is used to generate a new FormulaSet following a literal assignment.
+	 * The literal is added to the solution list.
+	 * The clauses containing that literal are removed from the set.
+	 * 
+	 * @params
+	 * 	int literal - the literal being used in the solution
+	 * 	FormulaSet set - the current set being evaluated
+	 *  ArrayList<Integer> soln - list of literals that have been tried/eliminated by the algorithm
+	 *  
+	 * @returns
+	 * 	FormulaSet that is a subset of the FormulaSet 'set'
 	 */
-//	private static FormulaSet eliminateFormulas(int unit, FormulaSet set, ArrayList<Integer> soln) {
-//		FormulaSet newset = new FormulaSet(set.getVarcount());
-//		soln.add(unit);
-//		
-//		System.out.println("Choosing " + unit);
-//		
-//		for (int i = 0; i < set.getFormulas().size(); i++)
-//		{
-//			if (!set.getFormulas().get(i).isSatisfiedBy(unit))
-//			{
-//				set.getFormulas().get(i).removeUnit(-unit);
-//				newset.addFormula(set.getFormulas().get(i));
-//				//check most recent addition for literal removal
-//				//newset.getFormulas().get(newset.getFormulas().size() - 1).removeUnit(-unit);
-//			}
-//		}
-//		return newset;
-//	}
-	
-	
-	private static FormulaSet eliminateFormulas(int unit, FormulaSet set, ArrayList<Integer> soln) {
-		FormulaSet newset = new FormulaSet(set.getVarcount());
-		Formula form, updform;
-
-		soln.add(unit);
-		
-		System.out.println("Choosing " + unit);
-		
-		for (int i = 0; i < set.getFormulas().size(); i++)
-		{
-			form = set.getFormulas().get(i);
-			//did not find literal, therefore must be added to the new set
-			if (!form.isSatisfiedBy(unit))
-			{
-				//if find negation we need to create a new formula without that literal
-				if (form.isSatisfiedBy(-unit))
-				{
-					updform = form.addAllBut(-unit);
-					newset.addFormula(updform);
-				}	
-				else
-				{
-					newset.addFormula(form);
-				}
-			}
-		}
-		return newset;
+	private static FormulaSet enactDecision(int literal, FormulaSet set, ArrayList<Integer> soln) {
+		soln.add(literal);
+		return eliminateFormulas(literal, set);
 	}
 	
-	//does removing the unit clause itself matter?
-	private static FormulaSet unitProp(int unit, FormulaSet set) {
+	/*
+	 * This method removes Formulas from the Formulaset that are satisfied by the literal argument
+	 * Formulas that contain the negation to the literal will add all other literals in the formula BUT that negation
+	 * 
+	 * @params
+	 * 	int literal
+	 * 	FormulaSet set
+	 * 
+	 * @returns
+	 * 	FormulaSet that is a subset of the argument FormulaSet set
+	 */
+	private static FormulaSet eliminateFormulas(int literal, FormulaSet set) {
 		FormulaSet newset = new FormulaSet(set.getVarcount());
 		Formula clause, updform;
 		
 		for (int i = 0; i < set.getFormulas().size(); i++)
 		{
 			clause = set.getFormulas().get(i);
-			
-			//add formulas that are not satisfied OR are the unit clause itself
-			if (!clause.isSatisfiedBy(unit))
+			//did not find literal, therefore must be added to the new set
+			if (!clause.isSatisfiedBy(literal))
 			{
 				//if find negation we need to create a new formula without that literal
-				if (clause.isSatisfiedBy(-unit))
-				{
-					updform = clause.addAllBut(-unit);
-					newset.addFormula(updform);
-				}	
-				else
-				{
-					newset.addFormula(clause);
-				}
+				if (clause.isSatisfiedBy(-literal))
+					clause = clause.addAllBut(-literal);
+				
+				newset.addFormula(clause);
 			}
 		}
-		
 		return newset;
 	}
 	
+	/*
+	 * 
+	 * ******** Unit Propagation ********
+	 * 
+	 */
 	
+	/*
+	 * Change implementation to just return the value of the unit literal
+	 * No need for index anymore
+	 * 
+	 */
 	private static ArrayList<Integer> findUnitFormula(FormulaSet set) {
 		//there is the case of conflicting unit formulas
 		Set<Integer> units = new HashSet<Integer>();
@@ -187,6 +156,9 @@ public class DPLL {
 		return unit_idx;
 	}
 	
+	/*
+	 * Will be eliminated when the change to findUnitFormula is made
+	 */
 	public static ArrayList<Integer> unitValues(ArrayList<Integer> unit_idx, FormulaSet set) {
 		ArrayList<Integer> unit_val = new ArrayList<Integer>();
 		for (int i = 0; i < unit_idx.size(); i++)
@@ -195,49 +167,55 @@ public class DPLL {
 		return unit_val;
 	}
 	
-	
+	/*
+	 * The Unit Propagation method used in the DPLL algorithm.
+	 * Unit Clauses are clauses with containing only one literal. Since these clauses must be true for the FormulaSet to be true
+	 * they can be eliminated from the FormulaSet, along with any other clause containing the variable found in the unit clause. The
+	 * resulting FormulaSet is reduced in size.
+	 * 
+	 * @params
+	 * 	ArrayList<Integer> unit_val - a list of unit literal values
+	 *  FormulaSet set
+	 *  ArrayList<Integer> soln - solution list
+	 * 
+	 * @return
+	 *  FormulaSet as a subset of the method argument
+	 */
 	private static FormulaSet runUnitProp(ArrayList<Integer> unit_val, FormulaSet set, ArrayList<Integer> soln) {
+		FormulaSet newset;
 		
 		if (unit_val.size() == 0)
 			return set;
 		
-		FormulaSet newset = new FormulaSet(set);
-		System.out.println("Before Prop");
-		//newset.toConsole();
-		
+		newset = new FormulaSet(set);
+
 		//add unit clauses to solution list
 		for (int i = 0; i < unit_val.size(); i++)
 			soln.add(unit_val.get(i));
 		
-		
-		for (int i = 0; i < unit_val.size(); i++) {
-			newset = unitProp(unit_val.get(i),newset);
-			//System.out.println("Prop " + unit_val.get(i));
-			//newset.toConsole();
-		}
+		for (int i = 0; i < unit_val.size(); i++) 
+			newset = eliminateFormulas(unit_val.get(i), newset);
 
 		return newset;
 	}
 	
-//	private static FormulaSet unitProp(int unit_val, FormulaSet set) {
-//		FormulaSet newset = new FormulaSet(set.getVarcount());
-//		Formula clause;
-//		
-//		for (int i = 0; i < set.getFormulas().size(); i++)
-//		{
-//			clause = set.getFormulas().get(i);
-//			//add formulas that are not satisfied OR are the unit clause itself
-//			if (!clause.isSatisfiedBy(unit_val) || (clause.isSatisfiedBy(unit_val) && clause.getFormula().size() == 1))
-//			{
-//				//remove negated values
-//				clause.removeUnit(-unit_val);
-//				newset.addFormula(clause);
-//			}
-//		}
-//		
-//		return newset;
-//	}
 	
+	/*
+	 * 
+	 * ******** Pure Literal Propagation ********
+	 * 
+	 */
+	
+	/*
+	 * Finds the pure literals in the FormulaSet, using the unique count of variables
+	 * 
+	 * @params
+	 * 	int[] uniq_count - a array containing the unique counts of the literals
+	 * 	int varcount - number of variables in the FormulaSet
+	 * 
+	 * @return
+	 *  ArrayList<Integer> containing the literals that are pure in the FormulaSet
+	 */
 	private static ArrayList<Integer> findPure(int[] uniq_count, int varcount) {
 		ArrayList<Integer> purelist = new ArrayList<Integer>();
 		
@@ -256,7 +234,19 @@ public class DPLL {
 	}
 	
 
-	//should  purelist act on the unit variables?
+    /*
+     * This method finds the pure literals in the FormulaSet and removes them.
+     * Pure Literals are literals without negations in the FormulaSet. This means they can only be one value. They can be removed
+     * from consideration in the FormulaSet.
+     * 
+     * @params
+     *  int[] uniq_count - a array containing the unique counts of the literals
+     *  FormulaSet set
+     *  ArrayList<Integer> soln - current solutions for the formulas
+     * 
+     * @return
+     *  FormulaSet as a subset of the original set
+     */
 	private static FormulaSet pureListAssign(int[] uniq_count, FormulaSet set, ArrayList<Integer> soln) {
 		ArrayList<Integer> purelist = findPure(uniq_count, set.getVarcount());
 		ArrayList<Formula> forms = (ArrayList<Formula>) set.getFormulas();
@@ -284,10 +274,16 @@ public class DPLL {
 	}
 	
 	
-	//and if not already chosen?
-	//[0, 2, 3, 2, 1] lit count looks like this
-	//this means that 3 should be assigned, with a count of 3 occurrences
-	//returns 0 on empty set
+	/*
+	 * This method determines which literal to choose when trying values in the algorithm
+	 * The literal chosen is the one occuring the most in the FormulaSet 
+	 *
+	 * @params
+	 *  int[] lit_count containing the counts of the literals 
+	 * 
+	 * @return
+	 *  literal as an int
+	 */
 	private static int chooseHighestLiteralCount(int lit_count[]) {
 		int highest = 0;
 		int val = 0;
@@ -306,18 +302,17 @@ public class DPLL {
 		return val;
 	}
 	
-	private static Formula generateBlockingClause(int[] solution) {
-		Formula bc = new Formula();
-		
-		//if literal is not 0 -> matters in the assignment
-		//add the negation to the new blocking clause
-		for (int i = 0; i < solution.length; i++)
-			if (solution[i] != 0)
-				bc.addValue(-solution[i]);
-		return bc;
-	}
-	
-	public boolean solve(ArrayList<ArrayList<Integer>> dimacs, int num_vars) {
+	/*
+	 * This method runs a DPLL SAT solver and prints the solution to the console if found
+	 * 
+	 * @params
+	 * 	Dimacs input in ArrayList<ArrayList<Integer>> form
+	 * 	int num_vars - the number of variables in the formulas
+	 * 
+	 * @return
+	 * 	boolean results of the search
+	 */
+	public boolean satDpll(ArrayList<ArrayList<Integer>> dimacs, int num_vars) {
 		
 		//dimacs find variables
 		System.out.println(num_vars + " vars");
@@ -343,58 +338,72 @@ public class DPLL {
 		return sat;
 	}
 	
-	public ArrayList<ArrayList<Integer>> allSolve(ArrayList<ArrayList<Integer>> dimacs, int num_vars) {
-		
-		//dimacs find variables
-		System.out.println(num_vars + " vars");
+	
+	
+	/*
+	 * The ALLSAT algorithm for finding all of the satisfiabilities for a formula set
+	 * This ALLSAT uses DPLL for the SAT and blocking clauses to find all solutions
+	 *  
+	 * @params
+	 * 	Dimacs input in ArrayList<ArrayList<Integer>> form
+	 * 	int num_vars - the number of variables in the formulas
+	 * 	
+	 * @return
+	 *  All solutions as a ArrayList<ArrayList<Integer>>
+	 */
+	public ArrayList<ArrayList<Integer>> allSatDpllBlock(ArrayList<ArrayList<Integer>> dimacs, int num_vars) {
 		FormulaSet forms, copy;
 		Formula blocking;
 		ArrayList<ArrayList<Integer>> allsol = new ArrayList<ArrayList<Integer>>();
 		ArrayList<Integer> solution = new ArrayList<Integer>();
-		boolean sat;
+		int[] soln;
 		
 		forms = new FormulaSet(num_vars);
 		forms.setFormulas(dimacs);
-		forms.toConsole();
-		
-		//since removal destroys original object
-		//copy = forms.copySet();
-
-		do {
 			
-			//sat = DPLL.runDPLL(copy, solution);
-			sat = DPLL.runDPLL(forms, solution);
-			System.out.println(sat);
-			//print solution
-			if (sat)
-			{
-				int[] soln = DPLL.finalSoln(solution, forms.getVarcount());
-				for (int i = 0; i < soln.length; i++)
-					System.out.print(soln[i] + " ");
-				System.out.println(" ");
-				
-				blocking = generateBlockingClause(soln);
-				allsol.add(convert(soln));
-				
-				//forms = new FormulaSet(num_vars);
-				forms.addFormula(blocking);
-				System.out.println("After Dimacs");
-				forms.toConsole();
-				
-				//recopy the original set with the blocking clause
-				//copy = forms.copySet();
-				
-				//zero solution array
-				solution.clear();
-			}
-			
-		} while (sat);
-		
-		
+		while(DPLL.runDPLL(forms, solution)) // DPLL
+		{
+			//find the simplified solution from the solution tree
+			soln = DPLL.finalSoln(solution, forms.getVarcount());
+			//add solution to the list of solutions
+			allsol.add(convert(soln));
+			//generate the new blocking clause for the new solution
+			blocking = generateBlockingClause(soln);
+			//add to original FormulaSet
+			forms.addFormula(blocking);			//ALLSAT IMPLEMENTATION -- BLOCKING CLAUSES
+			//zero solution array
+			solution.clear();
+		}
 		return allsol;
-		
 	}
 	
+	/*
+	 * Generates the blocking clause for the ALLSAT algorithm
+	 * The blocking clause is the inverse of the most recent solution. Therefore when DPLL attempts to 
+	 * look for more satisfiabilities it will not produce the same answer multiple times
+	 */
+	private static Formula generateBlockingClause(int[] solution) {
+		Formula bc = new Formula();
+		
+		//if literal is not 0 -> matters in the assignment
+		//add the negation to the new blocking clause
+		for (int i = 0; i < solution.length; i++)
+			if (solution[i] != 0)
+				bc.addValue(-solution[i]);
+		return bc;
+	}
+	
+
+	
+	/*
+	 * 
+	 * ******** Helpers ********
+	 * 
+	 */
+	
+	/*
+	 * Converts the int[] argument into an ArrayList<Integer>
+	 */
 	private static ArrayList<Integer> convert(int[] arr) {
 		ArrayList<Integer> list = new ArrayList<Integer>(arr.length);
 		
@@ -403,22 +412,11 @@ public class DPLL {
 		return list;
 	}
 	
-//	public void allSolve(ArrayList<ArrayList<Integer>> dimacs, int num_vars) {
-//		boolean sat = true;
-//		FormulaSet forms = new FormulaSet(num_vars);
-//		forms.setFormulas(dimacs);
-//		forms.toConsole();
-//		
-//		while (sat)
-//		{
-//			sat = solve(dimacs, num_vars);
-//			//remake original set
-//			//will not have to do this once removal is gone
-//			forms = new FormulaSet(num_vars);
-//			forms.setFormulas(dimacs);
-//		}
-//	}
-	
+	/*
+	 * Traverses the solution list in reverse to find the true values for the formula
+	 * If a value is true it will not be chosen again by the algorithm, therefore the last occurance of a literal
+	 * is the answer to the formula
+	 */
 	private static int[] finalSoln(ArrayList<Integer> soln, int vars) throws IndexOutOfBoundsException {
 		int[] assign = new int[vars];
 		boolean[] found = new boolean[vars];
@@ -436,56 +434,6 @@ public class DPLL {
 		}
 			
 		return assign;
-	}
-	
-//	public void testCopy(ArrayList<ArrayList<Integer>> dimacs) {
-//		FormulaSet forms = new FormulaSet(dimacs, 5);
-//		forms.toConsole();
-//		
-//		FormulaSet copy = new FormulaSet(5);
-//		
-////		for (int i = 0; i < forms.getFormulas().size(); i++) 
-////		{
-////			Formula f = new Formula();
-////			for (int j = 0; j < forms.getFormulas().get(i).getFormula().size(); j++)
-////			{
-////				f.addValue(forms.getFormulas().get(i).getFormula().get(j));
-////			}
-////			copy.addFormula(f);
-////		}
-//		
-//		copy = forms.copySet();
-//		
-//		System.out.println("Remove form copy");
-//		copy.getFormulas().get(1).getFormula().remove(1);
-//		copy.toConsole();
-//		
-//		System.out.println("Original");
-//		forms.toConsole();
-//		
-//	}
-
-	public static void main(String[] args) {
-		
-//		int num_vars = 4;
-//		
-//		int set[][] = {
-//				{1, 2, 3},
-//				{1,4},
-//				{-2, -3},
-//				{-1, -3},
-//		};
-//		
-//
-//		
-//
-//
-//		FormulaSet forms = new FormulaSet(num_vars);
-//		FormulaSet newset = new FormulaSet(num_vars);
-//		
-//
-//		boolean sat = DPLL.runDPLL(forms);
-//		System.out.println(sat);
 	}
 
 }

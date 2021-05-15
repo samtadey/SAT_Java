@@ -28,6 +28,15 @@ public class SAT_UI extends JFrame implements ActionListener {
     
     static JComboBox t;
     
+    
+    /*
+     * Parses dimacs input into ArrayList format. Format that can be used by SAT and ALLSAT algorithms
+     * 
+     * @params
+     * 	String input in dimacs format
+     * @return
+     * 	ArrayList of ArrayList of Integer
+     */
     public static ArrayList<ArrayList<Integer>> parseDimacsInput(String input) {
     	ArrayList<ArrayList<Integer>> formset = new ArrayList<ArrayList<Integer>>();
         
@@ -48,7 +57,9 @@ public class SAT_UI extends JFrame implements ActionListener {
         return formset;
     }
   
-    // if the button is pressed
+    /*
+     * Button press events
+     */
     public void actionPerformed(ActionEvent e)
     {
     	ArrayList<ArrayList<Integer>> formset, allsoln;
@@ -64,20 +75,19 @@ public class SAT_UI extends JFrame implements ActionListener {
             //input to algorithm
             DPLL dpll_sat = new DPLL();
             //dpll_sat.
-            results = dpll_sat.solve(formset, num_vars);
+            results = dpll_sat.satDpll(formset, num_vars);
             //dpll_sat.testCopy(formset);
             //print results
             l.setText(Boolean.toString(results));
         }
-        if (s.equals("allsat"))
+        else if (s.equals("allsat"))
         {
-        	System.out.println("Hello");
         	formset = parseDimacsInput(jt.getText());
             num_vars = Integer.parseInt((String) t.getSelectedItem());
             //input to algorithm
             DPLL dpll_sat = new DPLL();
             //dpll_sat.
-            allsoln = dpll_sat.allSolve(formset, num_vars);
+            allsoln = dpll_sat.allSatDpllBlock(formset, num_vars);
             
             System.out.println("Solutions!");
             for (int i = 0; i < allsoln.size(); i++)
@@ -86,10 +96,6 @@ public class SAT_UI extends JFrame implements ActionListener {
             		System.out.print(allsoln.get(i).get(j) + " ");
                 System.out.println(" ");
             }
-
-            //dpll_sat.testCopy(formset);
-            //print results
-            //l.setText(Boolean.toString(results));
         }
     }
     

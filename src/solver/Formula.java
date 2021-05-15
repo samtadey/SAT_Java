@@ -19,8 +19,15 @@ public class Formula {
 	/*
 	 * Default Constructor - Instantiates members
 	 */
-	Formula() {
+	public Formula() {
 		values = new ArrayList<Integer>(); 
+	}
+	
+	/*
+	 * Copy Constructor
+	 */
+	public Formula(Formula orig) {
+		this.values = orig.values;
 	}
 	
 	/*

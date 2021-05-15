@@ -27,8 +27,8 @@ public class FormulaSet {
 	}
 	
 	/*
-	 * FormulaSet constructor
-	 * Creates a new reference to a FormulaSet object
+	 * Copy FormulaSet constructor
+	 * 
 	 * @members
 	 * 		formulas = set formulas
 	 * 		varcount = set varcount
